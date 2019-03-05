@@ -378,6 +378,65 @@ func setBootDevices(d *schema.ResourceData, domainDef *libvirtxml.Domain) {
 	}
 }
 
+func setCPUTune(d *schema.ResourceData, domainDef *libvirtxml.Domain) error {
+	domainDef.CPUTune = &libvirtxml.DomainCPUTune{}
+	for i := 0; i < d.Get("cputune.#").(int); i++ {
+		if cpusetMap, ok := d.GetOk(fmt.Sprintf("cputune.%d.cpuset", i)); ok {
+			vcpu := 0
+			for _, cpuset := range cpusetMap.([]interface{}) {
+				cpusetStr := cpuset.(string)
+				if strings.Contains(cpusetStr, "-") {
+					tmpArry := strings.Split(cpusetStr, "-")
+					if len(tmpArry) > 1 {
+						start, err := strconv.Atoi(tmpArry[0])
+						if err != nil {
+							return err
+						}
+						end, err := strconv.Atoi(tmpArry[1])
+						if err != nil {
+							return err
+						}
+						if start > end {
+							return fmt.Errorf("Invalid CPU range : %s ", cpusetStr)
+						}
+
+						for ; start <= end; start++ {
+							vcpupin := libvirtxml.DomainCPUTuneVCPUPin{}
+							vcpupin.VCPU = uint(vcpu)
+							vcpupin.CPUSet = strconv.Itoa(start)
+							domainDef.CPUTune.VCPUPin = append(domainDef.CPUTune.VCPUPin, vcpupin)
+							vcpu++
+						}
+					}
+				} else if strings.Contains(cpusetStr, ",") {
+					tmpArry := strings.Split(cpusetStr, ",")
+					if len(tmpArry) > 1 {
+						for _, scpu := range tmpArry {
+							icpu, err := strconv.Atoi(scpu)
+							if err != nil {
+								return err
+							}
+							vcpupin := libvirtxml.DomainCPUTuneVCPUPin{}
+							vcpupin.VCPU = uint(vcpu)
+							vcpupin.CPUSet = strconv.Itoa(icpu)
+							domainDef.CPUTune.VCPUPin = append(domainDef.CPUTune.VCPUPin, vcpupin)
+							vcpu++
+						}
+					}
+				} else {
+					vcpupin := libvirtxml.DomainCPUTuneVCPUPin{}
+					vcpupin.VCPU = uint(vcpu)
+					vcpupin.CPUSet = cpuset.(string)
+					domainDef.CPUTune.VCPUPin = append(domainDef.CPUTune.VCPUPin, vcpupin)
+					vcpu++
+				}
+
+			}
+		}
+	}
+	return nil
+}
+
 func setConsoles(d *schema.ResourceData, domainDef *libvirtxml.Domain) {
 	for i := 0; i < d.Get("console.#").(int); i++ {
 		console := libvirtxml.DomainConsole{}

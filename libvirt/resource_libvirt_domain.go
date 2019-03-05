@@ -301,6 +301,23 @@ func resourceLibvirtDomain() *schema.Resource {
 					},
 				},
 			},
+			"cputune": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Required: false,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"cpuset": {
+							Type:     schema.TypeList,
+							Optional: true,
+							Required: false,
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+							},
+						},
+					},
+				},
+			},
 			"autostart": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -717,6 +734,7 @@ func resourceLibvirtDomainRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("firmware", domainDef.OS.Loader)
 	d.Set("nvram", domainDef.OS.NVRam)
 	d.Set("cpu", domainDef.CPU)
+	d.Set("cputune", domainDef.CPUTune)
 	d.Set("arch", domainDef.OS.Type.Arch)
 	d.Set("autostart", autostart)
 
