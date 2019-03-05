@@ -437,6 +437,49 @@ func setCPUTune(d *schema.ResourceData, domainDef *libvirtxml.Domain) error {
 	return nil
 }
 
+func setPCIDevices(d *schema.ResourceData, domainDef *libvirtxml.Domain) {
+    log.Printf("[DEBUG] setPCIDevice")
+    for i := 0; i < d.Get("hostdev.#").(int); i++ {
+		if pciDevMap, ok := d.GetOk(fmt.Sprintf("hostdev.%d.passthrough", i)); ok {
+			log.Printf("[DEBUG]  setPCIDevice : %s ",pciDevMap.(string))
+			pcidevice := pciDevMap.(interface{}).(string)
+			str_array := strings.Split(pcidevice, "_")
+			log.Printf("[DEBUG]  str_array : %q \n ",str_array)
+			pci_device := libvirtxml.DomainAddressPCI{}
+			domain,_ := strconv.ParseUint(str_array[1],0,32)
+			uint_domain := uint(domain)
+			pci_device.Domain = &uint_domain
+			bus,_ := strconv.ParseUint(str_array[2],0,32)
+			uint_bus := uint(bus)
+			pci_device.Bus = &uint_bus
+
+			slot,_ := strconv.ParseUint(str_array[3],0,32)
+			uint_slot := uint(slot)
+			pci_device.Slot = &uint_slot
+
+			fuc,_ := strconv.ParseUint(str_array[4],0,32)
+			uint_fuc := uint(fuc)
+			pci_device.Function = &uint_fuc
+
+			dom_address := libvirtxml.DomainHostdevSubsysPCISource{}
+			dom_address.Address = &pci_device
+                      
+                        dom_subs_pci := libvirtxml.DomainHostdevSubsysPCI{}
+                        dom_subs_pci.Source = &dom_address
+	
+		        hostdevice := libvirtxml.DomainHostdev{}
+		        hostdevice.Managed = "yes"
+		        hostdevice.SubsysPCI = &dom_subs_pci
+			domainDef.Devices.Hostdevs = append(domainDef.Devices.Hostdevs,hostdevice)
+
+	   }//fi
+    }//for
+
+}
+
+
+
+
 func setConsoles(d *schema.ResourceData, domainDef *libvirtxml.Domain) {
 	for i := 0; i < d.Get("console.#").(int); i++ {
 		console := libvirtxml.DomainConsole{}

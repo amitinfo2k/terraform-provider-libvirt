@@ -318,6 +318,19 @@ func resourceLibvirtDomain() *schema.Resource {
 					},
 				},
 			},
+			"hostdev": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"passthrough": {
+							Type:     schema.TypeString,
+							Optional: true,
+							Required: false,
+						},
+					},
+		    	        },
+			},
 			"autostart": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -471,6 +484,7 @@ func resourceLibvirtDomainCreate(d *schema.ResourceData, meta interface{}) error
 	setCmdlineArgs(d, &domainDef)
 	setFirmware(d, &domainDef)
 	setBootDevices(d, &domainDef)
+	setPCIDevices(d, &domainDef)
 
 	if err := setCoreOSIgnition(d, &domainDef); err != nil {
 		return err
